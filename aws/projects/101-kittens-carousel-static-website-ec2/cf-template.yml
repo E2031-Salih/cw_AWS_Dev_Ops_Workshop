@@ -1,0 +1,30 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: This template creates an EC2 instance which enables kittens-carousel-static-website.
+
+Resources:
+  awsprojectInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-02354e95b39ca8dec
+      InstanceType: t2.micro
+      KeyName: E2031-Salih_Virginia
+      SecurityGroups:
+        - Flask-working
+      Tags:
+        - Key: Name
+          Value: Web Server of Kittens-Carousel
+        UserData:
+          ```bash
+          #! /bin/bash
+          #update os
+          yum update -y
+          #install apache server
+          yum install -y httpd
+          # get date and time of server
+          DATE_TIME=`date`
+          cd /var/www/html
+          git clone https://github.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop.git
+          cp /cw_AWS_Dev_Ops_Workshop/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html ./
+          systemctl start httpd
+          systemctl enable httpd
