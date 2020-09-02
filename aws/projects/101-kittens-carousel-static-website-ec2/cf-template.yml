@@ -28,3 +28,4 @@ Resources:
           cp /cw_AWS_Dev_Ops_Workshop/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html ./
           systemctl start httpd
           systemctl enable httpd
+          
