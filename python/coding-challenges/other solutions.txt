@@ -1,0 +1,62 @@
+E2033 - Barış  6 hours ago
+print("###  This program converts decimal numbers to Roman Numerals ###",'\nTo exit the program, please type "exit")')
+while True:
+    number = input("Please enter a number between 1 and 3999, inclusively : ")
+    if number == "exit":
+        print("Exiting the program... Good Bye")
+        break
+    print(InttoRoman(number))
+
+E2033 - Barış  6 hours ago
+burada adam exit yazdıysa sonsuz döngüden çıkardım.
+
+E2033 - Barış  6 hours ago
+InttoRoman ı da şu şekilde tanımladım.
+
+E2033 - Barış  6 hours ago
+def InttoRoman(number):
+    int_roman_map = [(1000, 'M'), (900, 'CM'), (500, 'D'), (400, 'CD'), (100, 'C'), (90, 'XC'),\
+           (50, 'L'), (40, 'XL'), (10, 'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')]
+    if not number.isdigit():
+        return "Not Valid Input !!!"
+    number = int(number)
+    if (number > 3999) or (number < 1):
+        return "Not Valid Input !!!"
+    result = ""
+    while number > 0:
+        for i, roman in int_roman_map:
+            while number >= i:
+                result += roman
+                number -= i
+    return result
+
+E2033 - Barış  6 hours ago
+çözümlerin babası ise bu :slightly_smiling_face:
+
+E2033 - Barış  6 hours ago
+def int_to_roman(a):
+    all_roman_digits = []
+    digit_lookup_table = [
+        "", "0", "00", "000", "01",
+        "1", "10", "100", "1000", "02"]
+    for i,c in enumerate(reversed(str(a))):
+        roman_digit = ""
+        for d in digit_lookup_table[int(c)]:
+          roman_digit += ("IVXLCDM"[int(d)+i*2])
+        all_roman_digits.append(roman_digit)
+    return "".join(reversed(all_roman_digits))
+
+E2033 - Barış  6 hours ago
+0 -> ""; roman numerals don't show zeros.
+1 -> "0"; 0 + 2*i maps to I, X, C or M -> I, X, C or M.
+2 -> "00"; like for 1, x2 -> II, XX, CC, MM.
+3 -> "000"; like for 1, x3 -> III, XXX, CCC, MMM.
+4 -> "01"; like for 1, then 1 +2*i maps to V, L, or D -> IV, XL, CD.
+5 -> "1"; maps to odd roman numeral digits -> V, L, D.
+6 -> "10"; reverse of 4 -> VI, LX, DC.
+7 -> "100"; add another I/X/C -> VII LXX, DCC
+8 -> "1000"; add another I/X/C -> VIII, LXXX, DCCC
+9 -> "02"; like for 1, plus the next 10's level up (2 + i*2) -> IX, XC, CM.
+
+E2033 - Barış  6 hours ago
+bu da mantığı
