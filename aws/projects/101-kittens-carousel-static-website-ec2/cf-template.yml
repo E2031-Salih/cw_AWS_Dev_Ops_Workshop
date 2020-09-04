@@ -15,17 +15,25 @@ Resources:
         - Key: Name
           Value: Web Server of Kittens-Carousel
       UserData:
-        Fn::Base64: !Sub |
-          #!/bin/bash 
-          #update os
-          yum update -y
-          #install apache server
-          yum install -y httpd
-          # get date and time of server
-          DATE_TIME=`date`
-          cd /var/www/html
-          git clone https://github.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop.git
-          cp /cw_AWS_Dev_Ops_Workshop/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html ./
-          systemctl start httpd
-          systemctl enable httpd
+        Fn::Base64:
+          !Sub |
+            #! /bin/bash 
+            #update os
+            yum update -y
+            #install apache server
+            yum install -y httpd
+            DATE_TIME=`date`
+            
+            cd /var/www/html
+
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat0.jpg
+
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat1.jpg
+
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat2.jpg
+
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html
+
+            systemctl start httpd
+            systemctl enable httpd
           
