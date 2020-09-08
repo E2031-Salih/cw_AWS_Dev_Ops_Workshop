@@ -1,0 +1,15 @@
+lsblk
+sudo file -s /dev/xvdf
+sudo mkfs -t ext4 /dev/xvdf : formatlama
+sudo mkdir /mnt/2nd-vol/ : Attach yapmak için klasör
+sudo mount /dev/xvdf /mnt/2nd-vol/ : Mount olayı
+df -h :durumu görmek -h (human  readable)
+cd /mnt/2nd-vol
+sudo resize2fs /dev/xvdf
+sudo fdisk -l : partition durumunu görmek için
+sudo fdisk /dev/xvdg : partition yapmak için
+sudo growpart /dev/xdvg 2 : partition yaptığımız ana diski modify yapıyoz
+sudo resize2fs /dev/xdvg2 : part2'yi modify yaptık
+/etc/ içinde fstab'a girdik 
+reboot yapınca mount işlemleri kaybolmasın diye buraya yazıyoz
+/dev/xdvg2   /mnt/3rd_vol_part2    etc4   defaults,nofail 0   0
