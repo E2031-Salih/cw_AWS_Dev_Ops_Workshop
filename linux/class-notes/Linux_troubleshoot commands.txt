@@ -1,0 +1,98 @@
+ping:
+---------------
+
+linux'te sen ctrl+c yapana kadar ping atar
+     windows'ta 4 paket sadece gönderir.
+     linux'te ping -c 20 google.com dersen 20 paket gönderir.
+
+traceroute(tracert for windows)
+---------------------------------
+
+her hop'u gösteriyor, nerelerden geçiyo, ne kadar bekliyo.
+
+pathping:
+----------
+combination of ping and tracert (windowsta var bu komut)
+
+ipconfig:(windows)
+-------------------
+mevcut ağ cihazlarının konfigürasyonunu gösteriyor. wi-fi, vs
+sadece görüntüler, ayar yapamazsın.
+
+ifconfig:(linux)
+------------
+ipconfig'den farkı ayarlama da yapabiliyor olmamız. ağ kartının ismini ayarlarını değiştirebiliyoruz.
+
+****iptables*****:
+------------------
+en çok kullanacağımız komutlardan biri. firewall koyarken kullanıyoz.
+şu cihazdan gelen paketleri drop et:
+iptables -A INPUT -s 192.168.10.1 -j DROP
+bu şekilde tabloyu güncelliyoz.
+
+arp:
+--------
+mac adres ıp adres karşılığı tablosunu gösteriyo.
+
+arp -a dedin mi hepsini gösteriyo.
+biryerel ağda dublicate ip var mı buradan görebiliriz. aynı ip li hostlar internete çıkamaz
+
+nslookup:
+---------
+win+linux+mac'te var. IP'nin hangi server'a ait olduğunu veya server'da hangi IP olduğunu söylüyor.
+
+dig:
+-----
+nslookup'ın linux versiyonu, daha ayrıntılı bilgi vereni.
+
+mtr:
+-----traceroute ile ping'in birleşimi, pathping'in linux versiyonu.
+
+nmap:
+------
+popular port scanning tool. yüklemek gerekiyor, default yüklü gelmiyo.  Ayrıca ağdaki canlı hostları gösteriyo, network'ün logical map'ini veriyor.
+
+route: bunu da firewall ayarlarında çok kullanıcaz.
+------
+
+ağ routingini düzenlemek için kullanıyoruz.route add 10.1.1.0 mask 255.255.255.0 10.2.2.2 dedin mi yeni bi yol eklemiş oluyoruz. a cihazı b'ye gitsin oluyo.
+route delete .. de var.route change .. de var.
+
+netstat :
+----------
+
+gelen giden paketlerin durumunu gösteriyor.
+
+netstat -a tüm tcp/ip, udp bağlatılarını gösteriyo.
+
+ftp:
+-----
+dosya paylaşımı server i.
+
+PUT ve GET komutlarıyla al-ver
+
+telnet:
+-------
+ssh 'ın güvensiz hali, remote server a bağlanmak için
+
+ssh:
+-----
+secure shell
+
+scp:
+-----
+secure copy
+
+scp -i key.pem gönderilcek_dosya.txt ec2-user@ec2.........amazon.com:/home/ec-2user
+
+key.pem anahtarımın olduğu klasördeki dosyayı aldı ec2-user a bağlandı: ordaki /home/vesaire adresine kopyaladı.
+
+scp -i .ssh/key.pem ec2-user@ec2-3-88-32-109.compute-1.amazonaws.com:/home/ec2-user/welcome.msg welcome.msg
+
+ec2-user@...da:/home/ec2-user/welcome.msg'ı al ve bulunduğum klasörde welcome.msg olarak kopyala.
+
+curl:
+------
+dosya transferi ama not secure
+
+
