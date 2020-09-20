@@ -1,0 +1,21 @@
+bash prompt ta { \! } yazarsan history deki komut sırasını verir.
+
+$ --> variable
+PS1 --> bash promt değişkeni
+
+.bashrc nin içerisine koyarsan PS1'ı kalıcı değiştirmiş olursun.
+
+PS1'in içine \a dersen alert yani her enter'da ses verir.
+
+export komutu değişkene değer atamak için kullanılır.
+
+chmod komutunda +x dersen tümüne(grup, kullanıcı ve diğerleri) execute yetkisi verir. -x dersen de yetkiyi alır.
+
+script içinde $1 $2 diye argüman koyup komutu çalıştırırken fonk gibi girebiliriz.
+
+read -p "adını gir: " ad
+
+bu komut mesajı yazar, input'u ad değişkenine atar.
+
+-s modu da şifre gizleme hesabı ekranda bişey göstermez(* bile görünmez)
+
