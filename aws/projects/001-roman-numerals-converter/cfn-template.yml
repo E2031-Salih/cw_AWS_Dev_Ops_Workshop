@@ -6,7 +6,7 @@ Description: |
   with Flask on EC2. For deploying EC2, keypair is defined as a parameter.
 Parameters:
   KeyPair:
-    type: AWS::EC2::KeyPair::KeyName
+    Type: AWS::EC2::KeyPair::KeyName
     Description: Please enter the name of your KeyPair file.
 
 Resources:
@@ -25,7 +25,7 @@ Resources:
           CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
-        Value: RomanConvertSecGroup
+          Value: RomanConvertSecGroup
         
   romanInstance:
     Type: "AWS::EC2::Instance"
@@ -37,7 +37,7 @@ Resources:
         - !Ref romanSecGroup
       Tags:
         - Key: Name
-          Value: !Sub Web Server of ${AWS::CloudFormation::StackName}
+          Value: !Sub Web Server of ${AWS::StackName}
       UserData:
         Fn::Base64:
           !Sub |
@@ -45,18 +45,19 @@ Resources:
             #update os
             yum update -y
             yum install -y python3
-                        
-            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat0.jpg
+            pip3 install flask            
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/app.py
 
-            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat1.jpg
+            mkdir templates
+            cd templates
 
-            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/cat2.jpg
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/templates/index.html
 
-            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/101-kittens-carousel-static-website-ec2/static-web/index.html
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/templates/result.html
 
-            systemctl start httpd
-            systemctl enable httpd
-      
+            cd ..
+            python3 app.py
+
 Outputs:
   WebsiteURL:
     Description: Roman Numerals Converter Application Website URL
