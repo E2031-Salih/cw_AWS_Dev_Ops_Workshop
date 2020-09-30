@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  CloudFormation Template for Roman Numerals Converter Application.This template
+  creates Python Flask Web Application on Amazon Linux 2 (xxxxxxxxxxxx) EC2
+  Instance with custom security group allowing http connection on port 80.
+  Roman Numerals Converter Application is downloaded from GitHub repository, then
+  installed on Flask.
+
+Parameters:
+  KeyPairName:
+    Description: Enter the name of your Key Pair for SSH connection.
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must one of the existing EC2 KeyPair
+
+Resources:
+  WebServerSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Enable HTTP for Flask Web Server
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80 
+          ToPort: 80 
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22 
+          ToPort: 22
+          CidrIp: 0.0.0.0/0 
+  WebServerHost:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      ImageId: ami-0947d2ba12ee1ff75
+      InstanceType: t2.micro
+      KeyName: !Ref KeyPairName
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub Web server of ${AWS::StackName} Stack
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #! /bin/bash 
+            yum update -y
+            yum install -y python3
+            pip3 install flask
+            cd /home/ec2-user
+            wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/handson_app.py
+            wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/templates/index.html
+            wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/001-roman-numerals-converter/templates/result.html
+            python3 handson_app.py
+        
+Outputs:
+  WebsiteURL:
+    Value: !Sub 
+      - http://${PublicAddress}
+      - PublicAddress: !GetAtt  WebServerHost.PublicDnsName
+    Description: Romal Numerals converter Application URL
