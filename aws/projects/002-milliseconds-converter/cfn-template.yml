@@ -1,0 +1,107 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  CloudFormation Template for Milliseconds Converter Application (Python Flask). This template
+  creates Python Flask Web Application on Amazon Linux 2 (xxxxxxxxxxxx) EC2 Instance with
+  custom security group allowing http connection on port 80.
+  Milliseconds Converter Application (Python Flask) is downloaded from GitHub repository, then
+  installed on Flask and deployed on AWS Application Load Balancer with Auto Scaling Group
+  using AWS Cloudformation
+Parameters:
+  
+  KeyPair:
+    Description: Please enter your KeyPair file.
+    Type: AWS::EC2::KeyPair::KeyName
+  
+Resources:
+
+  AutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones: !GetAZs
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+      MaxSize: 3
+      MinSize: 1
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      
+  LaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0947d2ba12ee1ff75
+        InstanceType: t2.micro
+        KeyName: !Ref KeyPair
+        SecurityGroups: !Ref InstanceSecGroup
+        TagSpecifications:
+          ResourceType: Instance
+          Tags:
+            - Key: Name
+              Value: !Sub Web server of ${AWS::StackName}
+        User Data:
+          Fn::Base64:
+            !Sub |
+              #! /bin/bash
+
+              yum update -y
+              yum install -y python3
+              pip3 install flask
+              cd /home/ec2-user
+              wget 
+              wget -P templates 
+              wget -P templates 
+              python3 app.py
+   
+  LoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      SecurityGroups:
+        - !GetAtt ALBSecGroup.GroupId
+      Subnets:
+        - !Sub ${List<AWS::EC2::Subnet::Id>}
+        
+  Listener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  TargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: !Sub ${AWS::EC2::VPC::Id}
+ 
+  ALBSecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: HTTP and SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0   
+
+  InstanceSecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: HTTP with ALBSecGroup
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: ALBSecGroup.GroupId
+      
+Outputs:
