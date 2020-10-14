@@ -1,0 +1,118 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  CloudFormation Template for Milliseconds Converter Application (Python Flask). This template
+  creates Python Flask Web Application on Amazon Linux 2 (xxxxxxxxxxxx) EC2 Instance with
+  custom security group allowing http connection on port 80.
+  Milliseconds Converter Application (Python Flask) is downloaded from GitHub repository, then
+  installed on Flask and deployed on AWS Application Load Balancer with Auto Scaling Group
+  using AWS Cloudformation
+Parameters:
+  
+  KeyPair:
+    Description: Please enter your KeyPair file.
+    Type: AWS::EC2::KeyPair::KeyName
+  
+  Subnets:
+    Description: Please select your SubnetIds.
+    Type: List<AWS::EC2::Subnet::Id>
+  
+Resources:
+  
+  AutoScalingGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones: !GetAZs
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 90
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MaxSize: 3
+      MinSize: 1
+      TargetGroupARNs:
+        - !Ref TargetGroup
+      
+  LaunchTemplate:
+    Type: "AWS::EC2::LaunchTemplate"
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0947d2ba12ee1ff75
+        InstanceType: t2.micro
+        KeyName: !Ref KeyPair
+        SecurityGroups:
+          - !Ref InstanceSecGroup
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: Name
+                Value: !Sub Web server of ${AWS::StackName}
+        UserData:
+          Fn::Base64:
+            !Sub |
+              #! /bin/bash
+
+              yum update -y
+              yum install -y python3
+              pip3 install flask
+              cd /home/ec2-user
+              wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/app.py
+              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/templates/index.html
+              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/templates/result.html
+              python3 app.py
+   
+  LoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      SecurityGroups:
+        - !GetAtt ALBSecGroup.GroupId
+      Subnets: !Ref Subnets
+        
+  Listener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  TargetGroup:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      VpcId: !GetAtt InstanceSecGroup.VpcId
+ 
+  ALBSecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: HTTP and SSH
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0   
+
+  InstanceSecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: HTTP with ALBSecGroup
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !GetAtt ALBSecGroup.GroupId
+      
+Outputs:
+  WebsiteURL:
+    Description: Milliseconds Converter Application Website URL
+    Value: !Join
+      - ""
+      - - 'http://'
+        - !GetAtt LoadBalancer.DNSName 

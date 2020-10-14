@@ -32,10 +32,10 @@ def three():
     global ph_book
     name = input("Whom to delete from phonebook: ")
     if name not in ph_book:
-        return print(f"Couldn't find phone number of {name}")
+        return f"Couldn't find phone number of {name}"
     else:
         ph_book.pop(name)
-        return print(f"{name} is deleted from the phonebook")
+        return f"{name} is deleted from the phonebook"
     
 choice = ""
 ph_book = {}
@@ -48,6 +48,6 @@ while choice != '4':
     elif choice == "2":
         two()
     elif choice == "3":
-        three()
+        print(three())
 
 print ("Exiting Phonebook")
