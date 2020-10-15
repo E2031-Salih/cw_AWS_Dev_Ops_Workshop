@@ -1,11 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: |
-  CloudFormation Template for Milliseconds Converter Application (Python Flask). This template
-  creates Python Flask Web Application on Amazon Linux 2 (xxxxxxxxxxxx) EC2 Instance with
-  custom security group allowing http connection on port 80.
-  Milliseconds Converter Application (Python Flask) is downloaded from GitHub repository, then
-  installed on Flask and deployed on AWS Application Load Balancer with Auto Scaling Group
-  using AWS Cloudformation
+  CloudFormation Template for Phonebook Application (Python Flask).
+  
 Parameters:
   
   KeyPair:
@@ -18,6 +14,22 @@ Parameters:
   
 Resources:
 
+  RDSInstance:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t2.micro
+      DBInstanceIdentifier: RDS-Instance
+      DBName: phonebook
+      Engine: MySQL
+      EngineVersion: 8.0.19
+      MasterUserPassword: clarusway-1
+      MasterUsername: admin
+      Port: 3306
+      PubliclyAccessible: True
+      VPCSecurityGroups:
+        - !GetAtt DBSecGroup.GroupId
+        
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:
@@ -55,11 +67,14 @@ Resources:
               yum update -y
               yum install -y python3
               pip3 install flask
+              pip3 install flask-mysql
               cd /home/ec2-user
-              wget https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/app.py
-              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/templates/index.html
-              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/002-milliseconds-converter/templates/result.html
-              python3 app.py
+              echo ${RDSInstance.Endpoint.Address} > dbserver.endpoint
+              wget  https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/004-phonebook-web-application/phonebook-app.py
+              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/004-phonebook-web-application/templates/add-update.html
+              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/004-phonebook-web-application/templates/delete.html
+              wget -P templates https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/004-phonebook-web-application/templates/index.html
+              python3 phonebook-app.py
    
   LoadBalancer:
     Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
@@ -85,6 +100,16 @@ Resources:
       Protocol: HTTP
       VpcId: !GetAtt InstanceSecGroup.VpcId
  
+  DBSecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: 3306 with Instances only
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306 
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0 
+        
   ALBSecGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
@@ -94,21 +119,25 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0   
 
   InstanceSecGroup:
     Type: "AWS::EC2::SecurityGroup"
     Properties:
-      GroupDescription: HTTP with ALBSecGroup
+      GroupDescription: HTTP, SSH and 3306 with ALBSecGroup
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           SourceSecurityGroupId: !GetAtt ALBSecGroup.GroupId
-  
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0 
+
 Outputs:
   WebsiteURL:
     Description: Milliseconds Converter Application Website URL
