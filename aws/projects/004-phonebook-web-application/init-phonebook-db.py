@@ -1,13 +1,17 @@
 import mysql.connector
 from mysql.connector import errorcode
 
+db_endpoint = open("/home/ec2-user/dbserver.endpoint", 'r', encoding='UTF-8')
+
 config = {
   'user': 'admin',
   'password': 'clarusway-1',
-  'host': 'phonebook-app-db.cbanmzptkrzf.us-east-1.rds.amazonaws.com',
+  'host': db_endpoint.readline().strip(),
   'database': 'phonebook',
   'raise_on_warnings': True
 }
+
+db_endpoint.close()
 
 # Write a function named `init_phonebook_db` which initializes the phonebook db
 # Create phonebook table within mysql db and populate with sample data

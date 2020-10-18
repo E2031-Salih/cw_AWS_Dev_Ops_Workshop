@@ -120,9 +120,9 @@ def delete_person(name):
 # Write a function named `find_records` which finds phone records by keyword using `GET` and `POST` methods,
 # using template files named `index.html` given under `templates` folder
 # and assign to the static route of ('/')
-@app.before_first_request
-def do_something_only_once():
-    init_phonebook_db()
+#@app.before_first_request
+#def do_something_only_once():
+#    init_phonebook_db()
 
 @app.route('/', methods=['GET', 'POST'])
 def find_records():
@@ -194,6 +194,6 @@ def delete_record():
 
 # Add a statement to run the Flask application which can be reached from any host on port 80.
 if __name__== '__main__':
-    
+    # init_phonebook_db()
     # app.run(debug=True)
     app.run(host='0.0.0.0', port=80) 
