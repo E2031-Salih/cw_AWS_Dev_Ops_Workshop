@@ -9,4 +9,4 @@ def consecutive(text):
                 return "Positive"
         j += 1
         
-consecutive('a')
+print(consecutive('taaiei'))

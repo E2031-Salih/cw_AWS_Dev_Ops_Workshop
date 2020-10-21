@@ -21,15 +21,16 @@ Resources:
       DBInstanceClass: db.t2.micro
       DBInstanceIdentifier: RDS-Instance
       DBName: phonebook
+      DBSecurityGroups:
+        - !Ref DBSecGroup
       Engine: MySQL
       EngineVersion: 8.0.19
       MasterUserPassword: clarusway-1
       MasterUsername: admin
       Port: 3306
       PubliclyAccessible: True
-      VPCSecurityGroups:
-        - !GetAtt DBSecGroup.GroupId
-        
+  
+      
   AutoScalingGroup:
     Type: "AWS::AutoScaling::AutoScalingGroup"
     Properties:

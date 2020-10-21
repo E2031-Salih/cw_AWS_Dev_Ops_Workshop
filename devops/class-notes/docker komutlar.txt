@@ -1,0 +1,26 @@
+sudo yum update -y
+sudo amazon-linux-extras install docker -y
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -a -G docker ec2-user
+newgrp docker
+# Son iki komut docker komutlarını kullanırken her seferinde sudo yazmamızı engelliyor.
+docker version
+docker info
+docker run -d nginx         #nginx çalıştırmak için.
+docker ps                   #docker içeriğini gösterir
+docker ps
+docker stop d5b1a4357b10    #docker stop. herkeste farklı bu son kod.
+docker ps -a
+docker rm d5b1a4357b10      #docker remove. stop etmeden silemiyoruz.
+docker run -d -p 80:80 nginx --> 80 porttan konteynere gelsin, 80'den geri dönsün
+docker pull clarusways/cw_web_flask1 --> yeni image çektik ama daha çalıştırmadık
+docker run -d -p 80:5000 --name myweb clarusways/cw_web_flask1 --> çalıştırdık. benim konteynerimin 5000 portunu dış dünyaya 80 olarak expose et demiş olduk.
+ docker exec -it myweb sh  --> bu komutla myweb konteynerinin içine girdik sh kullanıyoz (bash misali)
+
+ps --> çalışan komutları/programları gösterir.
+
+exit --> konteyner içinden çıkıyoz.
+
+docker run -d -p 90:80 -it --name mynginx nginx bash --> nginx i restart ettik
+
