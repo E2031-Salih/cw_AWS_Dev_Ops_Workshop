@@ -41,10 +41,21 @@ Resources:
           !Sub |
             #! /bin/bash
             yum update -y
+            amazon-linux-extras install docker -y
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
             curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             chmod +x /usr/local/bin/docker-compose
-            wget -P /home/ec2-user/app-folder 
-            
+            cd /home/ec2-user/app-folder
+            wget -P /home/ec2-user/app/folder https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/201-dockerization-bookstore-api-on-python-flask-mysql/bookstore-api.py
+            wget -P /home/ec2-user/app/folder https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/201-dockerization-bookstore-api-on-python-flask-mysql/requirements.txt
+            wget -P /home/ec2-user/app XXXXXXxxxDockerfile
+            wget -P /home/ec2-user/app Dockercompose
+            cd /home/ec2-user/docker-folder
+            docker compose up -d
+
+
 
 Outputs:
 
