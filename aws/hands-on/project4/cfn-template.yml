@@ -23,7 +23,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 80 
           ToPort: 80
-          SourceSecuritygroupId: !GetAtt ALBSecurityGroup.GroupId
+          SourceSecurityGroupId: !GetAtt ALBSecurityGroup.GroupId
 
   ALBSecurityGroup:
     Type: "AWS::EC2::SecurityGroup"
@@ -41,7 +41,7 @@ Resources:
       LaunchTemplateData:
         ImageId: ami-0947d2ba12ee1ff75
         InstanceType: t2.micro
-        KeyName: !Ref KeyPair
+        KeyName: E2031-Salih_Virginia
         SecurityGroupIds: 
           - !GetAtt WebServerSecurityGroup.GroupId
         TagSpecifications: 
@@ -49,23 +49,108 @@ Resources:
             Tags:
               - Key: Name
                 Value: !Sub Web Server of ${AWS::StackName} Stack
-  UserData:
-    Fn::Base64:
-      !Sub
-        #! /bin/bash
-          yum update -y
-          yum install python3 -y
-          pip3 install flask
-          pip3 install flask_mysql
-          echo "${MyDBURI}" > /home/ec2-user/dbserver.endpoint
-          TOKEN="XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-          FOLDER="https://$TOKEN@raw.githubusercontent.com/clarusway/cw-workshop/aws/pr-004/aws/projects/004-phonebook-web-application/"
-          curl -s --create-dirs -o "/home/ec2-user/templates/index.html" -L "$FOLDER"templates/index.html
-          curl -s --create-dirs -o "/home/ec2-user/templates/add-update.html" -L "$FOLDER"templates/add-update.html
-          curl -s --create-dirs -o "/home/ec2-user/templates/delete.html" -L "$FOLDER"templates/delete.html
-          curl -s --create-dirs -o "/home/ec2-user/app.py" -L "$FOLDER"phonebook-app.py
-          python3 /home/ec2-user/app.py
-        - MyDBURI: !GetAtt MyDatabaseServer.Endpoint.Address
+        UserData:
+          Fn::Base64:
+            !Sub
+              - |
+                #! /bin/bash
+                yum update -y
+                yum install python3 -y
+                pip3 install flask
+                pip3 install flask_mysql
+                echo "${MyDBURI}" > /home/ec2-user/dbserver.endpoint
+                TOKEN="84a656d4f2bc794594c54c07749065b271e2f66e"
+                FOLDER1="https://$TOKEN@raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/projects/004-phonebook-web-application/"
+                FOLDER2="https://$TOKEN@raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/aws/hands-on/project4/"
+                curl -s --create-dirs -o "/home/ec2-user/templates/index.html" -L "$FOLDER1"templates/index.html
+                curl -s --create-dirs -o "/home/ec2-user/templates/add-update.html" -L "$FOLDER1"templates/add-update.html
+                curl -s --create-dirs -o "/home/ec2-user/templates/delete.html" -L "$FOLDER1"templates/delete.html
+                curl -s --create-dirs -o "/home/ec2-user/app.py" -L "$FOLDER2"phonebook-app.py
+                python3 /home/ec2-user/app.py
+              - MyDBURI: !GetAtt MyDatabaseServer.Endpoint.Address
+
+  WebServerTG:
+    Type: "AWS::ElasticLoadBalancingV2::TargetGroup"
+    Properties:
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      UnhealthyThresholdCount: 3
+      HealthyThresholdCount: 2
+      VpcId: !GetAtt WebServerSecurityGroup.VpcId
+
+  ApplicationLoadBalancer:
+    Type: "AWS::ElasticLoadBalancingV2::LoadBalancer"
+    Properties:
+      IpAddressType: ipv4
+      Scheme: internet-facing
+      SecurityGroups:
+        - !GetAtt ALBSecurityGroup.GroupId
+      Subnets:
+        - subnet-0b8a1005
+        - subnet-3512b353
+        - subnet-695f2f24
+        - subnet-3618ec07
+        - subnet-0fb41950
+        - subnet-ca69c6eb
+      Type: application
+
+  ALBListener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - TargetGroupArn: !Ref WebServerTG
+          Type: forward
+      LoadBalancerArn: !Ref ApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+      
+  WebServerASG:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      AvailabilityZones: !GetAZs 
+      DesiredCapacity: 2
+      HealthCheckGracePeriod: 300
+      HealthCheckType: ELB
+      LaunchTemplate:
+        LaunchTemplateId: !Ref WebServerLT
+        Version: !GetAtt WebServerLT.LatestVersionNumber
+      MaxSize: 3
+      MinSize: 1
+      TargetGroupARNs:
+        - !Ref WebServerTG
   
+  MyDBSecurityGroup:
+    Type: "AWS::RDS::DBSecurityGroup"
+    Properties:
+      DBSecurityGroupIngress:
+        - CIDRIP: 0.0.0.0/0
+        - EC2SecurityGroupId: !GetAtt WebServerSecurityGroup.GroupId
+      GroupDescription: Front-end access
   
+  MyDatabaseServer:
+    Type: "AWS::RDS::DBInstance"
+    Properties:
+      AllocatedStorage: 20
+      AllowMajorVersionUpgrade: false
+      AutoMinorVersionUpgrade: true
+      BackupRetentionPeriod: 0
+      DBInstanceClass: db.t2.micro
+      DBInstanceIdentifier: phonebook-app-db3
+      DBName: phonebook
+      DBSecurityGroups:
+        - !Ref MyDBSecurityGroup
+      Engine: MYSQL
+      EngineVersion: 8.0.19
+      MasterUserPassword: clarusway-1
+      MasterUsername: admin
+      MultiAZ: false
+      Port: 3306
+      PubliclyAccessible: true
+      
 Outputs:
+  WebsiteURL:
+    Value: !Sub 
+      - http://${ALBAddress}
+      - ALBAddress: !GetAtt ApplicationLoadBalancer.DNSName
+    Description: Phonebook Application Load Balancer URL
