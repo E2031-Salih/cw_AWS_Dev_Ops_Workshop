@@ -1,4 +1,5 @@
-version: "3"
+version: "3.7"
+
 services:
   
   bookstore:
@@ -21,9 +22,9 @@ services:
     networks:
       - mynet
 
-  networks:
-    mynet:
-      driver: bridge
+networks:
+  mynet:
+    driver: bridge
   
 
 
