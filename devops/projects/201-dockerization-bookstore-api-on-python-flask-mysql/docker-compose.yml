@@ -9,7 +9,7 @@ services:
     ports:
       - "80:80"
     networks:
-      -mynet
+      - mynet
 
   database:
     image: mysql:5.7
