@@ -1,6 +1,6 @@
 FROM python:3.7-alpine
-WORKDIR /bookstore-app
+WORKDIR /phonebook-app
 COPY ./folder/ .
 RUN pip install -r requirements.txt
 EXPOSE 80
-CMD python ./bookstore-api.py 
+CMD python ./phonebook-app.py

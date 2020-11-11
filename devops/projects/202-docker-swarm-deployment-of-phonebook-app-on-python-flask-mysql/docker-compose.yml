@@ -1,0 +1,51 @@
+version: "3.8"
+
+services:
+  
+  phonebook:
+    build: .
+    restart: always
+    depends_on:
+      - database
+    deploy:
+      mode: global
+      replicas: 1 
+    ports:
+      - "80:80"
+    networks:
+      - mynet
+
+  database:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: 1111PPpp
+      MYSQL_DATABASE: phonebook_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: Clarusway_1
+    command: --init-file /data/application/init.sql
+    volumes:
+        - ./init.sql:/data/application/init.sql
+    volumes:
+      - db-data:/var/lib/mysql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - mynet
+
+visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    stop_grace_period: 1m30s
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints:
+          - "node.role==manager"
+
+networks:
+  mynet:
+    driver: bridge
+
+volumes:
+  db-data:
