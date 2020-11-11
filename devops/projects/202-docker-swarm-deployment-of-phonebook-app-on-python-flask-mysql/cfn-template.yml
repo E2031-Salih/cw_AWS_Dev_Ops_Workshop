@@ -63,7 +63,7 @@ Resources:
           ToPort: 4789
           CidrIp: 0.0.0.0/0
       
-    Grand-Master:
+    GrandMaster:
       Type: "AWS::EC2::Instance"
       Properties:
         IamInstanceProfile: !Ref EC2toECRProfile
@@ -96,7 +96,7 @@ Resources:
               docker swarm init --advertise-addr ${Grand-Master.PrivateIp}
               docker service create --name=viz --publish=8080:8080/tcp --constraint=node.role==manager \
               --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock dockersamples/visualizer
-              # update aws cli to latest version
+              # install aws cli to latest version
               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
               unzip awscliv2.zip
               ./aws/install
@@ -104,22 +104,133 @@ Resources:
               aws ecr create-repository --repository-name ${AWS::StackName}/phonebook-app \
               --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
               yum install git -y
-              wget -P /home/ec2-user/app/ git.Dockerfiler
-              wget -P /home/ec2-user/app/ git.docker-compose
-              wget -P /home/ec2-user/app/folder/ git app.py
-              wget -P /home/ec2-user/app/folder/ git requirements
-              wget -P /home/ec2-user/app/folder/ git init.sql
-
-
-              
+              wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile
+              wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/docker-compose.yml
+              wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/phonebook-app.py
+              wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/requirements.txt
+              wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/index.html
+              wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/delete.html
+              wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/add-update.html
+              wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
+              cd /home/ec2-user/app/
+              docker build -t phonebook-app:latest .
               docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
               docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
+              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
+              docker stack deploy -c ./docker-compose.yml phonebook-api
 
- 
-    
+    ManagerTemplate:
+      Type: "AWS::EC2::LaunchTemplate"
+      Properties:
+        LaunchTemplateData:
+          IamInstanceProfile: !Ref EC2toECRProfile
+          ImageId: ami-0947d2ba12ee1ff75
+          InstanceType: t2.micro
+          KeyName: !Ref KeyName
+          SecurityGroupIds:
+          - !GetAtt SecGroup.GroupId
+          UserData: 
+            Fn::Base64:
+              !Sub |
+                #! /bin/bash
+                yum update -y
+                # install docker
+                systemctl start docker
+                systemctl enable docker
+                amazon-linux-extras install docker -y
+                usermod -a -G docker ec2-user
+                # install docker-compose
+                curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+                -o /usr/local/bin/docker-compose
+                chmod +x /usr/local/bin/docker-compose
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                ./aws/install
+                yum install python3 -y
+                pip3 install ec2instanceconnectcli
+                mssh ${GrandMaster} | TOKEN=$(docker swarm join-token -q manager)
+                docker swarm join --token $TOKEN ${GrandMaster.PrivateIp}:2377
 
+    Manager2:
+      Type: "AWS::EC2::Instance"
+      Properties:
+        LaunchTemplate:
+          !Ref ManagerTemplate
+        Tags:
+            - Key: Name
+              Value: !Sub Docker Manager 2 of ${AWS::StackName}
+        
+    Manager3:
+      Type: "AWS::EC2::Instance"
+      Properties:
+        LaunchTemplate:
+          !Ref ManagerTemplate
+        Tags:
+            - Key: Name
+              Value: !Sub Docker Manager 3 of ${AWS::StackName}
 
-  
-Transform:
-  
+    WorkerTemplate:
+      Type: "AWS::EC2::LaunchTemplate"
+      Properties:
+        LaunchTemplateData:
+          IamInstanceProfile: !Ref EC2toECRProfile
+          ImageId: ami-0947d2ba12ee1ff75
+          InstanceType: t2.micro
+          KeyName: !Ref KeyName
+          SecurityGroupIds:
+          - !GetAtt SecGroup.GroupId
+          UserData: 
+            Fn::Base64:
+              !Sub |
+                #! /bin/bash
+                yum update -y
+                # install docker
+                systemctl start docker
+                systemctl enable docker
+                amazon-linux-extras install docker -y
+                usermod -a -G docker ec2-user
+                # install docker-compose
+                curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+                -o /usr/local/bin/docker-compose
+                chmod +x /usr/local/bin/docker-compose
+                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+                unzip awscliv2.zip
+                ./aws/install
+                yum install python3 -y
+                pip3 install ec2instanceconnectcli
+                mssh ${GrandMaster} | TOKEN=$(docker swarm join-token -q worker)
+                docker swarm join --token $TOKEN ${GrandMaster.PrivateIp}:2377
+
+    Worker2:
+      Type: "AWS::EC2::Instance"
+      Properties:
+        LaunchTemplate:
+          !Ref WorkerTemplate
+        Tags:
+            - Key: Name
+              Value: !Sub Docker Worker 1 of ${AWS::StackName}
+        
+    Worker2:
+      Type: "AWS::EC2::Instance"
+      Properties:
+        LaunchTemplate:
+          !Ref WorkerTemplate
+        Tags:
+            - Key: Name
+              Value: !Sub Docker Worker 2 of ${AWS::StackName}
+
 Outputs:
+  Phonebook App Website URL:
+    Description: Phonebook App Website URL
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt GrandMaster.PublicDnsName
+
+  Visualization App Website URL:
+    Description: Visualization App Website URL
+    Value: !Join 
+      - ''
+      - - 'http://'
+        - !GetAtt GrandMaster.PublicDnsName
+        - ':8080'
