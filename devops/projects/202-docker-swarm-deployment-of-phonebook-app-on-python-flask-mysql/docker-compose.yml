@@ -4,12 +4,10 @@ services:
   
   phonebook:
     image: phonebook-app:latest
-    restart: always
     depends_on:
       - database
     deploy:
-      mode: global
-      replicas: 1 
+      mode: global 
     ports:
       - "80:80"
     networks:
@@ -23,8 +21,8 @@ services:
       MYSQL_USER: admin
       MYSQL_PASSWORD: Clarusway_1
     volumes:
-      - db-data:/var/lib/mysql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - db-data:/var/lib/mysql/data
     networks:
       - mynet
 

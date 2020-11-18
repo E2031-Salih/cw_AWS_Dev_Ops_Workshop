@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+  Docker swarm
+Parameters:
+  KeyName:
+    Description: Please select your key pair.
+    Type: AWS::EC2::KeyPair::KeyName
+     
+Resources:
+  InstanceConnectPolicy:
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      PolicyDocument: #required
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - ec2-instance-connect:SendSSHPublicKey
+            Resource:
+              - !Sub arn:aws:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+            Condition: {"StringEquals": {"ec2:osuser": ["ec2-user", "ubuntu"]}}
+          - Effect: Allow
+            Action:
+              - ec2:DescribeInstances
+            Resource: "*"
+  EC2InstanceConnect:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - !Ref InstanceConnectPolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AdministratorAccess
+    
+  EC2toECRProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Roles:
+        - !Ref EC2InstanceConnect
+
+  SecGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: SSH, HTTP and 8080
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 2377
+          ToPort: 2377
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 7946
+          ToPort: 7946
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 7946
+          ToPort: 7946
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: udp
+          FromPort: 4789
+          ToPort: 4789
+          CidrIp: 0.0.0.0/0
+      
+  GrandMaster:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      IamInstanceProfile: !Ref EC2toECRProfile
+      ImageId: ami-0947d2ba12ee1ff75
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+        - !GetAtt SecGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: !Sub Docker Manager 1 of ${AWS::StackName}
+      UserData: 
+        Fn::Base64:
+          !Sub |
+            #! /bin/bash
+            yum update -y
+            # change the hostname
+            hostnamectl set-hostname Grand-Master
+            bash
+            # install docker
+            amazon-linux-extras install docker -y
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            newgrp docker
+            # install docker-compose
+            curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            # init swarm
+            docker swarm init
+            docker service create --name=viz --publish=8080:8080/tcp --constraint=node.role==manager \
+            --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock dockersamples/visualizer
+            # install aws cli to latest version
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            ./aws/install
+            # authenticate
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
+            # create a repo in ECR
+            aws ecr create-repository --repository-name ${AWS::StackName}/phonebook-app \
+            --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
+            yum install git -y
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/docker-compose.yml
+            wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/phonebook-app.py
+            wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/requirements.txt
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/index.html
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/delete.html
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/add-update.html
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
+            cd /home/ec2-user/app/
+            docker build -t phonebook-app:latest .
+            docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
+            docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
+            docker pull ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
+            docker stack deploy -c ./docker-compose.yml phonebook-api
