@@ -4,4 +4,4 @@ def drawbox(entry):
             print('#'*entry)
         else:
             print('#' + ' ' * (entry - 2) + '#')
-drawbox(20)
+drawbox(3)

@@ -1,12 +1,15 @@
-version: "3.8"
+version: "3.7"
 
 services:
   
   phonebook:
-    image: phonebook-app:latest
+    image: 130917230501.dkr.ecr.us-east-1.amazonaws.com/E2031/phonebook-app:latest
     depends_on:
       - database
     deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 10s
       mode: global 
     ports:
       - "80:80"
@@ -20,9 +23,12 @@ services:
       MYSQL_DATABASE: phonebook_db
       MYSQL_USER: admin
       MYSQL_PASSWORD: Clarusway_1
+    configs:
+      - source: db-init
+        target: docker-entrypoint-initdb.d/init.sql
+ 
     volumes:
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - db-data:/var/lib/mysql/data
+      - db-data:/var/lib/mysql
     networks:
       - mynet
 
@@ -32,3 +38,7 @@ networks:
 
 volumes:
   db-data:
+
+configs:
+  db-init:
+    file: ./init.sql
