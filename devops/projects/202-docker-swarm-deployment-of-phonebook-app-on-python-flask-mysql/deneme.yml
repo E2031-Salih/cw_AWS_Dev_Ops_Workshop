@@ -118,10 +118,13 @@ Resources:
             unzip awscliv2.zip
             ./aws/install
             yum install amazon-ecr-credential-helper -y
+            mkdir -p /home/ec2-user/.docker
+            cd /home/ec2-user/.docker
+            echo '{"credsStore": "ecr-login"}' > config.json
             # authenticate
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
             # create a repo in ECR
-            aws ecr create-repository --repository-name E2031/phonebook-app \
+            aws ecr create-repository --repository-name e2031/phonebook-app \
             --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
             yum install git -y
             wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile

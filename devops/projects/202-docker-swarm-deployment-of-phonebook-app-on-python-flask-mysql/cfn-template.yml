@@ -37,8 +37,6 @@ Resources:
       ManagedPolicyArns:
         - !Ref InstanceConnectPolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
-        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
-        - arn:aws:iam::aws:policy/AdministratorAccess
     
   EC2toECRProfile:
     Type: "AWS::IAM::InstanceProfile"
@@ -117,10 +115,15 @@ Resources:
           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
           unzip awscliv2.zip
           ./aws/install
+          # ecr credential-helper
+          yum install amazon-ecr-credential-helper -y
+          mkdir -p /home/ec2-user/.docker
+          cd /home/ec2-user/.docker
+          echo '{"credsStore": "ecr-login"}' > config.json
           # authenticate
           aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
           # create a repo in ECR
-          aws ecr create-repository --repository-name ${AWS::StackName}/phonebook-app \
+          aws ecr create-repository --repository-name e2031/phonebook-app \
           --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
           yum install git -y
           wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile
@@ -133,8 +136,9 @@ Resources:
           wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
           cd /home/ec2-user/app/
           docker build -t phonebook-app:latest .
-          docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
-          docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/${AWS::StackName}/phonebook-app:latest
+          docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
+          docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
           docker stack deploy -c ./docker-compose.yml phonebook-api
   
   ManagerTemplate:
@@ -167,10 +171,12 @@ Resources:
             ./aws/install
             yum install python3 -y
             pip3 install ec2instanceconnectcli
-            mssh ${GrandMaster} | docker swarm join-token -q manager | grep . > token.txt | exit
-            scp ec2-user@${GrandMaster.PublicIp}:token.txt /home/ec2-user/
-            TOKEN=$(cat /home/ec2-user/token.txt | grep .)
-            docker swarm join --token $TOKEN ${GrandMaster.PrivateIp}:2377
+            CMD=$(mssh ${GrandMaster} --region us-east-1 -o StrictHostKeyChecking=no docker swarm join-token manager | grep "token")
+            $CMD
+            yum install amazon-ecr-credential-helper -y
+            mkdir -p /home/ec2-user/.docker
+            cd /home/ec2-user/.docker
+            echo '{"credsStore": "ecr-login"}' > config.json
   
   Manager2:
     Type: "AWS::EC2::Instance"
@@ -224,10 +230,12 @@ Resources:
             ./aws/install
             yum install python3 -y
             pip3 install ec2instanceconnectcli
-            mssh ${GrandMaster} | docker swarm join-token -q manager | grep . > token.txt | exit
-            scp ec2-user@${GrandMaster.PublicIp}:token.txt /home/ec2-user/
-            TOKEN=$(cat /home/ec2-user/token.txt | grep .)
-            docker swarm join --token $TOKEN ${GrandMaster.PrivateIp}:2377
+            CMD=$(mssh ${GrandMaster} --region us-east-1 -o StrictHostKeyChecking=no docker swarm join-token manager | grep "token")
+            $CMD
+            yum install amazon-ecr-credential-helper -y
+            mkdir -p /home/ec2-user/.docker
+            cd /home/ec2-user/.docker
+            echo '{"credsStore": "ecr-login"}' > config.json
 
   Worker1:
     Type: "AWS::EC2::Instance"

@@ -3,13 +3,10 @@ version: "3.7"
 services:
   
   phonebook:
-    image: 130917230501.dkr.ecr.us-east-1.amazonaws.com/E2031/phonebook-app:latest
+    image: 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
     depends_on:
       - database
     deploy:
-      restart_policy:
-        condition: on-failure
-        delay: 10s
       mode: global 
     ports:
       - "80:80"
