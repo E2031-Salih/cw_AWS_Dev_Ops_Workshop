@@ -139,7 +139,7 @@ Resources:
             docker build -t phonebook-app:latest .
             docker tag phonebook-app:latest 130917230501.dkr.ecr.us-east-1.amazonaws.com/E2031/phonebook-app:latest
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
-            docker push 130917230501.dkr.ecr.us-east-1.amazonaws.com/E2031/phonebook-app:latest
+            docker push 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
             aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
             docker pull 130917230501.dkr.ecr.us-east-1.amazonaws.com/E2031/phonebook-app:latest
             docker stack deploy -c ./docker-compose.yml phonebook-api

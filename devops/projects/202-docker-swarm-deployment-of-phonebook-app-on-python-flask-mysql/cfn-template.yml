@@ -137,7 +137,7 @@ Resources:
           cd /home/ec2-user/app/
           docker build -t phonebook-app:latest .
           docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
+          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
           docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
           docker stack deploy -c ./docker-compose.yml phonebook-api
   
@@ -171,8 +171,8 @@ Resources:
             ./aws/install
             yum install python3 -y
             pip3 install ec2instanceconnectcli
-            CMD=$(mssh ${GrandMaster} --region us-east-1 -o StrictHostKeyChecking=no docker swarm join-token manager | grep "token")
-            $CMD
+            eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+            --region ${AWS::Region} ${GrandMaster} docker swarm join-token worker | grep -i 'docker')"
             yum install amazon-ecr-credential-helper -y
             mkdir -p /home/ec2-user/.docker
             cd /home/ec2-user/.docker
@@ -230,8 +230,8 @@ Resources:
             ./aws/install
             yum install python3 -y
             pip3 install ec2instanceconnectcli
-            CMD=$(mssh ${GrandMaster} --region us-east-1 -o StrictHostKeyChecking=no docker swarm join-token manager | grep "token")
-            $CMD
+            eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+            --region ${AWS::Region} ${GrandMaster} docker swarm join-token worker | grep -i 'docker')"
             yum install amazon-ecr-credential-helper -y
             mkdir -p /home/ec2-user/.docker
             cd /home/ec2-user/.docker
