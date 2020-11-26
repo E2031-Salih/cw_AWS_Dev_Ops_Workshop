@@ -1,6 +1,8 @@
 AWSTemplateFormatVersion: 2010-09-09
+
 Description: |
   Docker swarm
+
 Parameters:
   KeyName:
     Description: Please select your key pair.
@@ -23,6 +25,7 @@ Resources:
             Action:
               - ec2:DescribeInstances
             Resource: "*"
+
   EC2InstanceConnect:
     Type: "AWS::IAM::Role"
     Properties:
@@ -37,6 +40,8 @@ Resources:
       ManagedPolicyArns:
         - !Ref InstanceConnectPolicy
         - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+        - arn:aws:iam::aws:policy/AWSCloudFormationFullAccess
+        - arn:aws:iam::aws:policy/AdministratorAccess
     
   EC2toECRProfile:
     Type: "AWS::IAM::InstanceProfile"
@@ -91,55 +96,55 @@ Resources:
         - Key: Name
           Value: !Sub Docker Manager 1 of ${AWS::StackName}
       UserData: 
-        Fn::Base64: |
-          #! /bin/bash
-          yum update -y
-          # change the hostname
-          hostnamectl set-hostname Grand-Master
-          bash
-          # install docker
-          amazon-linux-extras install docker -y
-          systemctl start docker
-          systemctl enable docker
-          usermod -a -G docker ec2-user
-          newgrp docker
-          # install docker-compose
-          curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
-          -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          # init swarm
-          docker swarm init
-          docker service create --name=viz --publish=8080:8080/tcp --constraint=node.role==manager \
-          --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock dockersamples/visualizer
-          # install aws cli to latest version
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          ./aws/install
-          # ecr credential-helper
-          yum install amazon-ecr-credential-helper -y
-          mkdir -p /home/ec2-user/.docker
-          cd /home/ec2-user/.docker
-          echo '{"credsStore": "ecr-login"}' > config.json
-          # authenticate
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
-          # create a repo in ECR
-          aws ecr create-repository --repository-name e2031/phonebook-app \
-          --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
-          yum install git -y
-          wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile
-          wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/docker-compose.yml
-          wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/phonebook-app.py
-          wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/requirements.txt
-          wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/index.html
-          wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/delete.html
-          wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/add-update.html
-          wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
-          cd /home/ec2-user/app/
-          docker build -t phonebook-app:latest .
-          docker tag phonebook-app:latest ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com
-          docker push ${AWS::AccountId}.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
-          docker stack deploy -c ./docker-compose.yml phonebook-api
+        Fn::Base64:
+          !Sub |
+            #! /bin/bash
+            yum update -y
+            # change the hostname
+            hostnamectl set-hostname Grand-Master
+            bash
+            # install docker
+            amazon-linux-extras install docker -y
+            systemctl start docker
+            systemctl enable docker
+            usermod -a -G docker ec2-user
+            newgrp docker
+            # install docker-compose
+            curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+            -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+            # init swarm
+            docker swarm init
+            # authenticate
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 130917230501.dkr.ecr.us-east-1.amazonaws.com
+            docker service create --name=viz --publish=8080:8080/tcp --constraint=node.role==manager \
+            --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock dockersamples/visualizer
+            yum install git -y
+            # install aws cli to latest version
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            ./aws/install
+            # ecr credential-helper
+            yum install amazon-ecr-credential-helper -y
+            mkdir -p /home/ec2-user/.docker
+            cd /home/ec2-user/.docker
+            echo '{"credsStore": "ecr-login"}' > config.json
+            # create a repo in ECR
+            aws ecr create-repository --repository-name e2031/phonebook-app \
+            --image-scanning-configuration scanOnPush=false --image-tag-mutability IMMUTABLE --region us-east-1
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/Dockerfile
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/docker-compose.yml
+            wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/phonebook-app.py
+            wget -P /home/ec2-user/app/folder/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/requirements.txt
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/index.html
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/delete.html
+            wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/add-update.html
+            wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
+            cd /home/ec2-user/app/
+            docker build -t phonebook-app:latest .
+            docker tag phonebook-app:latest 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
+            docker push 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
+            docker stack deploy --with-registry-auth -c ./docker-compose.yml phonebook-api
   
   ManagerTemplate:
     Type: "AWS::EC2::LaunchTemplate"
@@ -153,31 +158,32 @@ Resources:
         SecurityGroupIds:
         - !GetAtt SecGroup.GroupId
         UserData: 
-          Fn::Base64: |
-            #! /bin/bash
-            
-            yum update -y
-            # install docker
-            amazon-linux-extras install docker -y
-            systemctl start docker
-            systemctl enable docker
-            usermod -a -G docker ec2-user
-            # install docker-compose
-            curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
-            -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            ./aws/install
-            yum install python3 -y
-            pip3 install ec2instanceconnectcli
-            eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-            --region ${AWS::Region} ${GrandMaster} docker swarm join-token worker | grep -i 'docker')"
-            yum install amazon-ecr-credential-helper -y
-            mkdir -p /home/ec2-user/.docker
-            cd /home/ec2-user/.docker
-            echo '{"credsStore": "ecr-login"}' > config.json
-  
+          Fn::Base64:
+            !Sub |
+              #! /bin/bash
+
+              yum update -y
+              # install docker
+              amazon-linux-extras install docker -y
+              systemctl start docker
+              systemctl enable docker
+              usermod -a -G docker ec2-user
+              # install docker-compose
+              curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              yum install python3 -y
+              pip3 install ec2instanceconnectcli
+              eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+                --region us-east-1 ${GrandMaster} docker swarm join-token manager | grep -i 'docker')"
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install
+              yum install amazon-ecr-credential-helper -y
+              mkdir -p /home/ec2-user/.docker
+              cd /home/ec2-user/.docker
+              echo '{"credsStore": "ecr-login"}' > config.json
+          
   Manager2:
     Type: "AWS::EC2::Instance"
     Properties:
@@ -187,7 +193,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub Docker Manager 2 of ${AWS::StackName}
-    DependsOn: GrandMaster
+    DependsOn:
+      - GrandMaster
 
   Manager3:
     Type: "AWS::EC2::Instance"
@@ -198,7 +205,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub Docker Manager 3 of ${AWS::StackName}
-    DependsOn: GrandMaster
+    DependsOn:
+      - Manager2
 
   WorkerTemplate:
     Type: "AWS::EC2::LaunchTemplate"
@@ -212,31 +220,32 @@ Resources:
         SecurityGroupIds:
         - !GetAtt SecGroup.GroupId
         UserData: 
-          Fn::Base64: |
-            #! /bin/bash
-            
-            yum update -y
-            # install docker
-            amazon-linux-extras install docker -y
-            systemctl start docker
-            systemctl enable docker
-            usermod -a -G docker ec2-user
-            # install docker-compose
-            curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
-            -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            ./aws/install
-            yum install python3 -y
-            pip3 install ec2instanceconnectcli
-            eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-            --region ${AWS::Region} ${GrandMaster} docker swarm join-token worker | grep -i 'docker')"
-            yum install amazon-ecr-credential-helper -y
-            mkdir -p /home/ec2-user/.docker
-            cd /home/ec2-user/.docker
-            echo '{"credsStore": "ecr-login"}' > config.json
-
+          Fn::Base64:
+            !Sub |
+              #! /bin/bash
+              
+              yum update -y
+              # install docker
+              amazon-linux-extras install docker -y
+              systemctl start docker
+              systemctl enable docker
+              usermod -a -G docker ec2-user
+              # install docker-compose
+              curl -L "https://github.com/docker/compose/releases/download/1.27.4/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              yum install python3 -y
+              pip3 install ec2instanceconnectcli
+              eval "$(mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+                --region us-east-1 ${GrandMaster} docker swarm join-token worker | grep -i 'docker')"
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.0.30.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install
+              yum install amazon-ecr-credential-helper -y
+              mkdir -p /home/ec2-user/.docker
+              cd /home/ec2-user/.docker
+              echo '{"credsStore": "ecr-login"}' > config.json
+          
   Worker1:
     Type: "AWS::EC2::Instance"
     Properties:
@@ -246,7 +255,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub Docker Worker 1 of ${AWS::StackName}
-    DependsOn: GrandMaster
+    DependsOn:
+      - Manager3
 
   Worker2:
     Type: "AWS::EC2::Instance"
@@ -257,7 +267,8 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub Docker Worker 2 of ${AWS::StackName}
-    DependsOn: GrandMaster
+    DependsOn:
+      - Worker1
 
 Outputs:
   PhonebookAppWebsiteURL:
