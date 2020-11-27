@@ -141,6 +141,10 @@ Resources:
             wget -P /home/ec2-user/app/folder/templates/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/templates/add-update.html
             wget -P /home/ec2-user/app/ https://raw.githubusercontent.com/E2031-Salih/cw_AWS_Dev_Ops_Workshop/master/devops/projects/202-docker-swarm-deployment-of-phonebook-app-on-python-flask-mysql/init.sql
             cd /home/ec2-user/app/
+            cat << EOF | tee .env
+            ECR_REGISTRY=${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+            APP_REPO_NAME=e2031/phonebook-app
+            EOF
             docker build -t phonebook-app:latest .
             docker tag phonebook-app:latest 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
             docker push 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest

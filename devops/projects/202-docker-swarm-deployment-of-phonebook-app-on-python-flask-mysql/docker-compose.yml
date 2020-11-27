@@ -3,7 +3,7 @@ version: "3.7"
 services:
   
   phonebook:
-    image: 130917230501.dkr.ecr.us-east-1.amazonaws.com/e2031/phonebook-app:latest
+    image: ${ECR_REGISTRY}/${APP_REPO_NAME}:latest
     depends_on:
       - database
     deploy:
