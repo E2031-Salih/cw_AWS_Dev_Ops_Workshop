@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: search-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: search
+  template:
+    metadata:
+      labels:
+        name: search
+    spec:
+      containers: 
+        - image: 130917230501.dkr.ecr.us-east-1.amazonaws.com/k8s_project_result:latest
+          imagePullPolicy: Always
+          name: search-app
+          ports: 
+            - containerPort: 80
+          env:
+          - name: MYSQL_DATABASE_HOST
+            valueFrom:
+              configMapKeyRef:
+                 name: config
+                 key: host            
+          - name: MYSQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: mysql-pass
+                key: password
+          - name: MYSQL_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: mysql-pass
+                key: database
+          - name: MYSQL_USER
+            valueFrom:
+              secretKeyRef:
+                name: mysql-pass
+                key: username  
+          
